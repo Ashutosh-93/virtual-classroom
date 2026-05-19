@@ -15,6 +15,7 @@ export const signup = async (req, res) => {
     const { fullName, email, password, role } = req.body;
 
     const existingUser = await User.findOne({ email });
+    
 
     if (existingUser) {
       return res.status(400).json({ message: "User already exists" });
@@ -58,6 +59,7 @@ export const signup = async (req, res) => {
 export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
+    console.log("login controller 1");
 
     const user = await User.findOne({ email });
 

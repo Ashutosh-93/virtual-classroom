@@ -33,7 +33,7 @@ export const getMe = async (req, res) => {
 // ============================
 export const updateProfile = async (req, res) => {
   try {
-    const { fullName, bio, avatar } = req.body;
+    const { fullName, profilePic } = req.body;
 
     const user = await User.findById(req.user._id);
 
@@ -45,8 +45,7 @@ export const updateProfile = async (req, res) => {
     }
 
     user.fullName = fullName || user.fullName;
-    user.bio = bio || user.bio;
-    user.avatar = avatar || user.avatar;
+    user.profilePic = profilePic || user.profilePic;
 
     await user.save();
 
