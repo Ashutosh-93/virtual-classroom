@@ -304,8 +304,8 @@ export const googleLogin = async (req, res) => {
     else if (!user.googleId) {
       user.googleId = googleId;
 
-      // only overwrite avatar if empty
-      if (!user.avatar) {
+      // only overwrite profile picture if empty
+      if (!user.profilePic) {
         user.profilePic = picture;
       }
 
