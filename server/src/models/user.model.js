@@ -32,7 +32,10 @@ const userSchema = new mongoose.Schema(
   unique: true,
   sparse: true,
 },
-
+isVerified: {
+      type: Boolean,
+      default: false,
+    },
     role: {
       type: String,
       enum: ["student", "teacher"],

@@ -1,51 +1,31 @@
-// routes/lecture.routes.js
-
 import express from "express";
 import authMiddleware from "../middleware/authMiddleware.js";
+import upload from "../middleware/multerMiddleware.js";
 
 import {
   createLecture,
-  getCourseLectures,
   updateLecture,
   deleteLecture,
 } from "../controllers/lecture.controller.js";
 
 const router = express.Router();
 
-// =====================
-// CREATE LECTURE (teacher only)
-// =====================
+// CREATE LECTURE (with video upload)
 router.post(
-  "/course/:courseId",
+  "/:courseId",
   authMiddleware,
+  upload.single("video"), 
   createLecture
 );
 
-// =====================
-// GET ALL LECTURES OF A COURSE
-// =====================
-router.get(
-  "/course/:courseId",
-  authMiddleware,
-  getCourseLectures
-);
-
-// =====================
-// UPDATE LECTURE
-// =====================
+// UPDATE LECTURE (optional video replacement)
 router.put(
   "/:lectureId",
   authMiddleware,
+  upload.single("video"), 
   updateLecture
 );
 
-// =====================
-// DELETE LECTURE
-// =====================
-router.delete(
-  "/:lectureId",
-  authMiddleware,
-  deleteLecture
-);
+router.delete("/:lectureId", authMiddleware, deleteLecture);
 
 export default router;

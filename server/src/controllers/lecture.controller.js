@@ -1,16 +1,26 @@
-// controllers/lecture.controller.js
-
 import Course from "../models/course.model.js";
 import Lecture from "../models/lecture.model.js";
 
+import {
+  uploadVideo,
+  deleteVideo,
+} from "../services/storage.service.js";
+
+// ==============================
 // CREATE LECTURE
+// ==============================
 export const createLecture = async (req, res) => {
   try {
-    const { title, videoUrl } = req.body;
-
+    const { title } = req.body;
     const { courseId } = req.params;
 
-    // check course
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: "Video file is required",
+      });
+    }
+
     const course = await Course.findById(courseId);
 
     if (!course) {
@@ -20,29 +30,29 @@ export const createLecture = async (req, res) => {
       });
     }
 
-    // make sure teacher owns the course
+    // ownership check
     if (course.teacher.toString() !== req.user._id.toString()) {
       return res.status(403).json({
         success: false,
-        message: "Unauthorized",
+        message: "Not authorized to add lectures",
       });
     }
 
-    // create lecture
+    // upload video
+    const result = await uploadVideo(req.file.buffer);
+
     const lecture = await Lecture.create({
       title,
-      videoUrl,
+      videoUrl: result.secure_url,
+      publicId: result.public_id,
       course: courseId,
     });
 
-    // push lecture into course
     course.lectures.push(lecture._id);
-
     await course.save();
 
     res.status(201).json({
       success: true,
-      message: "Lecture created successfully",
       lecture,
     });
   } catch (error) {
@@ -53,35 +63,13 @@ export const createLecture = async (req, res) => {
   }
 };
 
-// GET COURSE LECTURES
-export const getCourseLectures = async (req, res) => {
-  try {
-    const { courseId } = req.params;
-
-    const lectures = await Lecture.find({
-      course: courseId,
-    }).sort({
-      createdAt: 1,
-    });
-
-    res.status(200).json({
-      success: true,
-      lectures,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
-
+// ==============================
 // UPDATE LECTURE
+// ==============================
 export const updateLecture = async (req, res) => {
   try {
     const { lectureId } = req.params;
-
-    const { title, videoUrl } = req.body;
+    const { title } = req.body;
 
     const lecture = await Lecture.findById(lectureId);
 
@@ -92,25 +80,32 @@ export const updateLecture = async (req, res) => {
       });
     }
 
-    // check course ownership
     const course = await Course.findById(lecture.course);
 
     if (course.teacher.toString() !== req.user._id.toString()) {
       return res.status(403).json({
         success: false,
-        message: "Unauthorized",
+        message: "Not authorized",
       });
     }
 
-    lecture.title = title || lecture.title;
+    // update title
+    if (title) lecture.title = title;
 
-    lecture.videoUrl = videoUrl || lecture.videoUrl;
+    // replace video if new file exists
+    if (req.file) {
+      await deleteVideo(lecture.publicId);
+
+      const result = await uploadVideo(req.file.buffer);
+
+      lecture.videoUrl = result.secure_url;
+      lecture.publicId = result.public_id;
+    }
 
     await lecture.save();
 
     res.status(200).json({
       success: true,
-      message: "Lecture updated successfully",
       lecture,
     });
   } catch (error) {
@@ -121,7 +116,9 @@ export const updateLecture = async (req, res) => {
   }
 };
 
+// ==============================
 // DELETE LECTURE
+// ==============================
 export const deleteLecture = async (req, res) => {
   try {
     const { lectureId } = req.params;
@@ -135,28 +132,28 @@ export const deleteLecture = async (req, res) => {
       });
     }
 
-    // find course
     const course = await Course.findById(lecture.course);
 
-    // ownership check
     if (course.teacher.toString() !== req.user._id.toString()) {
       return res.status(403).json({
         success: false,
-        message: "Unauthorized",
+        message: "Not authorized",
       });
     }
 
-    // remove lecture from course
-    course.lectures.pull(lectureId);
+    // remove from cloud
+    await deleteVideo(lecture.publicId);
 
-    await course.save();
-
-    // delete lecture
+    // remove from DB
     await Lecture.findByIdAndDelete(lectureId);
+
+    // remove reference from course
+    course.lectures.pull(lectureId);
+    await course.save();
 
     res.status(200).json({
       success: true,
-      message: "Lecture deleted successfully",
+      message: "Lecture deleted",
     });
   } catch (error) {
     res.status(500).json({

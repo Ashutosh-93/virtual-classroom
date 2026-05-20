@@ -7,7 +7,6 @@ const lectureSchema = new mongoose.Schema(
     title: {
       type: String,
       required: true,
-      trim: true,
     },
 
     videoUrl: {
@@ -16,8 +15,8 @@ const lectureSchema = new mongoose.Schema(
     },
 
     publicId: {
-      type: String,
-      default: "",
+      type: String, // Cloudinary file id (IMPORTANT for delete/update)
+      required: true,
     },
 
     course: {
@@ -26,9 +25,7 @@ const lectureSchema = new mongoose.Schema(
       required: true,
     },
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
 
 const Lecture = mongoose.model("Lecture", lectureSchema);

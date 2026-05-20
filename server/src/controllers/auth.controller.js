@@ -220,7 +220,13 @@ export const verifyOtp = async (req, res) => {
         message: "Invalid OTP",
       });
     }
-
+// mark email as verified (you can also create user here if you want)
+//from here
+    // await User.create({
+    //   email,
+    //   isVerified: true,
+    // });
+//to here
     // delete otp after success
     await Otp.deleteOne({
       _id: otpRecord._id,
@@ -285,7 +291,7 @@ export const googleLogin = async (req, res) => {
       user = await User.create({
         fullName: name,
         email,
-        avatar: picture,
+        profilePic: picture,
         googleId,
         password: crypto.randomBytes(32).toString("hex"),
         isVerified: true,
@@ -300,7 +306,7 @@ export const googleLogin = async (req, res) => {
 
       // only overwrite avatar if empty
       if (!user.avatar) {
-        user.avatar = picture;
+        user.profilePic = picture;
       }
 
       await user.save();
