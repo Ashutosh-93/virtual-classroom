@@ -2,7 +2,15 @@
 
 import mongoose from "mongoose";
 
-const otpSchema = new mongoose.Schema({
+const tempUserSchema = new mongoose.Schema({
+  name:{
+type:String,
+required:true,
+  },
+  password: {
+type: String,
+required: true,
+  },
   email: {
     type: String,
     required: true,
@@ -20,6 +28,7 @@ const otpSchema = new mongoose.Schema({
   },
 });
 
-const Otp = mongoose.model("Otp", otpSchema);
+const TempUser = mongoose.model("TempUser", tempUserSchema);
 
-export default Otp;
+export default TempUser;
+

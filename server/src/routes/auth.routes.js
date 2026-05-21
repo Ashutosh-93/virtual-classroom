@@ -5,10 +5,9 @@ import {
   signup,
   login,
   logout,
-  sendOtp,
-  googleLogin,
-  verifyOtp
+  googleLogin
 } from "../controllers/auth.controller.js";
+import { sendOtp, verifyOtp } from "../controllers/otp.controller.js";
 
 
 const router = express.Router();

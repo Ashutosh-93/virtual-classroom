@@ -5,7 +5,7 @@ import crypto from "crypto";
 
 import resend from "../config/resend.js";
 
-import Otp from "../models/otp.model.js";
+
 
 import { OAuth2Client } from "google-auth-library";
 
@@ -120,130 +120,6 @@ export const logout = (req, res) => {
 
 
 
-// ===================================
-// SEND OTP
-// ===================================
-export const sendOtp = async (req, res) => {
-  try {
-    const { email } = req.body;
-
-    if (!email) {
-      return res.status(400).json({
-        success: false,
-        message: "Email is required",
-      });
-    }
-
-    // check if user already exists
-    const existingUser = await User.findOne({ email });
-
-    if (existingUser) {
-      return res.status(400).json({
-        success: false,
-        message: "User already exists",
-      });
-    }
-
-    // prevent spam requests
-    const existingOtp = await Otp.findOne({ email });
-
-    if (existingOtp) {
-      return res.status(400).json({
-        success: false,
-        message: "OTP already sent. Please wait 5 minutes.",
-      });
-    }
-
-    // generate otp
-    const generatedOtp = crypto
-      .randomInt(100000, 999999)
-      .toString();
-
-    // save otp
-    await Otp.create({
-      email,
-      otp: generatedOtp,
-    });
-
-    // send email
-    await resend.emails.send({
-      from: "onboarding@resend.dev",
-      to: email,
-      subject: "Your Verification Code",
-      html: `
-        <h2>Email Verification</h2>
-        <p>Your OTP code is:</p>
-        <h1>${generatedOtp}</h1>
-        <p>This OTP expires in 5 minutes.</p>
-      `,
-    });
-
-    res.status(200).json({
-      success: true,
-      message: "OTP sent successfully",
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
-
-// ===================================
-// VERIFY OTP
-// ===================================
-export const verifyOtp = async (req, res) => {
-  try {
-    const { email, otp } = req.body;
-
-    if (!email || !otp) {
-      return res.status(400).json({
-        success: false,
-        message: "All fields are required",
-      });
-    }
-
-    const otpRecord = await Otp.findOne({ email });
-
-    if (!otpRecord) {
-      return res.status(400).json({
-        success: false,
-        message: "OTP expired or not requested",
-      });
-    }
-
-    // verify otp
-    if (otpRecord.otp !== otp) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid OTP",
-      });
-    }
-// mark email as verified (you can also create user here if you want)
-//from here
-    // await User.create({
-    //   email,
-    //   isVerified: true,
-    // });
-//to here
-    // delete otp after success
-    await Otp.deleteOne({
-      _id: otpRecord._id,
-    });
-
-    res.status(200).json({
-      success: true,
-      message: "Email verified successfully",
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
-
 
 
 
@@ -332,17 +208,7 @@ export const googleLogin = async (req, res) => {
     // ==========================
     res.status(200).json({
       success: true,
-      message: "Google login successful",
-
-      user: {
-        id: user._id,
-        fullName: user.fullName,
-        email: user.email,
-        avatar: user.avatar,
-        role: user.role,
-      },
-
-      token,
+      message: "Google login successful"    
     });
   } catch (error) {
     console.error(error);
