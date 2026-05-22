@@ -3,6 +3,8 @@
 import express from "express";
 // import "dotenv/config";
 import cookieParser from "cookie-parser";
+import corsMiddleware from "./middleware/cors.middleware.js";
+app.use(corsMiddleware);
 
 
 import connectDB from "./config/db.js";

@@ -133,6 +133,7 @@ const isMatch = await bcrypt.compare(otp,otpRecord.otp);
       fullName: otpRecord.name,
       email: otpRecord.email,
       password: otpRecord.password,
+      isVerified: true,
     });
     
 
