@@ -3,9 +3,10 @@
 import express from "express";
 // import "dotenv/config";
 import cookieParser from "cookie-parser";
-import corsMiddleware from "./middleware/cors.middleware.js";
-app.use(corsMiddleware);
+import { corsConfig } from "./config/corsConfig.js"; // Import the CORS configuration
 
+const app = express();
+app.use(corsConfig);
 
 import connectDB from "./config/db.js";
 import authRoutes from "./routes/auth.routes.js";
@@ -15,7 +16,7 @@ import courseRoutes from "./routes/course.routes.js";
 
 
 
-const app = express();
+
 
 // Middleware
 app.use(express.json());

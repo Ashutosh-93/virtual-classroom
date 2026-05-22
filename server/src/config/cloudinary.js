@@ -1,7 +1,4 @@
-// config/cloudinary.js
-
 import { v2 as cloudinary } from "cloudinary";
-import fs from "fs";
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -9,23 +6,26 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-// upload
-export const uploadToCloudinary = async (filePath) => {
-  try {
-    const result = await cloudinary.uploader.upload(filePath, {
-      resource_type: "video",
-    });
+// upload (Memory Storage / Buffer version)
+export const uploadToCloudinary = (fileBuffer) => {
+  return new Promise((resolve, reject) => {
+    // Create the upload stream
+    const uploadStream = cloudinary.uploader.upload_stream(
+      { resource_type: "video" },
+      (error, result) => {
+        if (error) {
+          return reject(error);
+        }
+        resolve(result);
+      }
+    );
 
-    fs.unlinkSync(filePath); // delete local file after upload
-
-    return result;
-  } catch (error) {
-    fs.unlinkSync(filePath);
-    throw error;
-  }
+    // Feed the buffer into the stream
+    uploadStream.end(fileBuffer);
+  });
 };
 
-// delete
+// delete (Remains exactly the same)
 export const deleteFromCloudinary = async (publicId) => {
   return await cloudinary.uploader.destroy(publicId, {
     resource_type: "video",

@@ -25,4 +25,4 @@ const corsOptions = {
 };
 
 // Export the middleware ready to be used
-export const corsMiddleware = cors(corsOptions);
+export const corsConfig = cors(corsOptions);

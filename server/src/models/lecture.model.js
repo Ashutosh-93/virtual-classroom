@@ -13,7 +13,10 @@ const lectureSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-
+    description:{
+      type: String,
+      required: true,
+    },
     publicId: {
       type: String, // Cloudinary file id (IMPORTANT for delete/update)
       required: true,

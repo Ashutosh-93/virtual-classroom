@@ -11,13 +11,13 @@ import {
 // ==============================
 export const createLecture = async (req, res) => {
   try {
-    const { title } = req.body;
+    const { title, description } = req.body;
     const { courseId } = req.params;
 
-    if (!req.file) {
+    if (title || description || !req.file) {
       return res.status(400).json({
         success: false,
-        message: "Video file is required",
+        message: "Title, Description and video file is required",
       });
     }
 
@@ -69,7 +69,7 @@ export const createLecture = async (req, res) => {
 export const updateLecture = async (req, res) => {
   try {
     const { lectureId } = req.params;
-    const { title } = req.body;
+    const { title, description } = req.body;
 
     const lecture = await Lecture.findById(lectureId);
 
@@ -81,7 +81,7 @@ export const updateLecture = async (req, res) => {
     }
 
     const course = await Course.findById(lecture.course);
-
+// ownership check
     if (course.teacher.toString() !== req.user._id.toString()) {
       return res.status(403).json({
         success: false,
@@ -92,6 +92,9 @@ export const updateLecture = async (req, res) => {
     // update title
     if (title) lecture.title = title;
 
+    // update description
+    if (description) lecture.description = description;
+
     // replace video if new file exists
     if (req.file) {
       await deleteVideo(lecture.publicId);
@@ -101,7 +104,7 @@ export const updateLecture = async (req, res) => {
       lecture.videoUrl = result.secure_url;
       lecture.publicId = result.public_id;
     }
-
+// save changes
     await lecture.save();
 
     res.status(200).json({
@@ -133,7 +136,7 @@ export const deleteLecture = async (req, res) => {
     }
 
     const course = await Course.findById(lecture.course);
-
+// ownership check
     if (course.teacher.toString() !== req.user._id.toString()) {
       return res.status(403).json({
         success: false,

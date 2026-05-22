@@ -58,7 +58,7 @@ export const getAllCourses = async (req, res) => {
 export const getCourseById = async (req, res) => {
   try {
     const course = await Course.findById(req.params.id)
-      .populate("teacher", "fullName avatar email")
+      .populate("teacher", "fullName profilePic email")
       .populate("lectures", "title");
 
     if (!course) {
