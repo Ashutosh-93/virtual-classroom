@@ -1,16 +1,18 @@
 import crypto from "crypto";
 import resend from "../config/resend.js";
-import TempUser from "../models/tempUser.model.js";
 import User from "../models/user.model.js";
 import bcrypt from "bcrypt";
+import Otp from "../models/otp.model.js";
 
 
 // SEND OTP
 export const sendOtp = async (req, res) => {
   try {
-    const { name,email,password, confirmPassword } = req.body;
+    const { name, email, password, confirmPassword } = req.body;
+    const normalizedName = name?.trim() || "";
+    const normalizedEmail = email?.trim().toLowerCase() || "";
 
-    if (!name || !email || !password || !confirmPassword) {
+    if (!normalizedName || !normalizedEmail || !password || !confirmPassword) {
       return res.status(400).json({
         success: false,
         message: "All fields are required",
@@ -39,17 +41,19 @@ export const sendOtp = async (req, res) => {
 
 
     // check if user already exists
-    const existingUser = await User.findOne({ email });
+    const existingUser = await User.findOne({ email: normalizedEmail });
 
     if (existingUser) {
+      if(existingUser.isVerified){  
       return res.status(400).json({
         success: false,
         message: "User already exists",
       });
     }
+    }
 
     // prevent spam requests
-    const existingOtp = await TempUser.findOne({ email });
+    const existingOtp = await Otp.findOne({ email: normalizedEmail });
 
     if (existingOtp) {
       return res.status(400).json({
@@ -65,18 +69,24 @@ export const sendOtp = async (req, res) => {
       //hashing password and otp before saving in tempUser
 const hashedPassword = await bcrypt.hash(password, 10);
 const hashedOtp = await bcrypt.hash(generatedOtp, 10);
+//create a user from email, name and hashed password
+await User.create({
+  fullName: normalizedName,
+  email: normalizedEmail,
+  password: hashedPassword,
+  isVerified: false,
+});
+
     // save otp
-    await TempUser.create({
-      name,
-      email,
-      password:hashedPassword,
+    await Otp.create({
+      email: normalizedEmail,
       otp: hashedOtp,
     });
 
     // send email
     await resend.emails.send({
       from: "onboarding@resend.dev",
-      to: email,
+      to: normalizedEmail,
       subject: "Your Verification Code",
       html: `
         <h2>Email Verification</h2>
@@ -104,15 +114,17 @@ const hashedOtp = await bcrypt.hash(generatedOtp, 10);
 export const verifyOtp = async (req, res) => {
   try {
     const { email, otp } = req.body;
+    const normalizedEmail = email?.trim().toLowerCase() || "";
+    const normalizedOtp = otp?.toString().trim() || "";
 
-    if (!email || !otp) {
+    if (!normalizedEmail || !normalizedOtp) {
       return res.status(400).json({
         success: false,
         message: "All fields are required",
       });
     }
 
-    const otpRecord = await TempUser.findOne({ email });
+    const otpRecord = await Otp.findOne({ email: normalizedEmail });
 
     if (!otpRecord) {
       return res.status(400).json({
@@ -120,7 +132,7 @@ export const verifyOtp = async (req, res) => {
         message: "OTP expired or not requested",
       });
     }
-const isMatch = await bcrypt.compare(otp,otpRecord.otp);
+    const isMatch = await bcrypt.compare(normalizedOtp, otpRecord.otp);
     // verify otp
     if (!isMatch) {
       return res.status(400).json({
@@ -128,17 +140,11 @@ const isMatch = await bcrypt.compare(otp,otpRecord.otp);
         message: "Invalid OTP",
       });
     }
-    //create user after successful otp verification
-    await User.create({
-      fullName: otpRecord.name,
-      email: otpRecord.email,
-      password: otpRecord.password,
-      isVerified: true,
-    });
-    
+    //update user after successful otp verification
+    await User.updateOne({ email: normalizedEmail }, { isVerified: true });
 
     // delete otp after success
-    await TempUser.deleteOne({
+    await Otp.deleteOne({
       _id: otpRecord._id,
     });
 
@@ -153,4 +159,3 @@ const isMatch = await bcrypt.compare(otp,otpRecord.otp);
     });
   }
 };
-

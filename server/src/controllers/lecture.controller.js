@@ -1,10 +1,18 @@
+import mongoose from "mongoose";
+
 import Course from "../models/course.model.js";
 import Lecture from "../models/lecture.model.js";
+import { deleteVideo, uploadVideo } from "../services/storage.service.js";
 
-import {
-  uploadVideo,
-  deleteVideo,
-} from "../services/storage.service.js";
+const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
+
+const ensureTeacherOwnership = (course, userId) => {
+  if (!course) {
+    return false;
+  }
+
+  return course.teacher?.toString() === userId?.toString();
+};
 
 // ==============================
 // CREATE LECTURE
@@ -14,10 +22,20 @@ export const createLecture = async (req, res) => {
     const { title, description } = req.body;
     const { courseId } = req.params;
 
-    if (title || description || !req.file) {
+    const trimmedTitle = title?.trim();
+    const trimmedDescription = description?.trim();
+
+    if (!isValidObjectId(courseId)) {
       return res.status(400).json({
         success: false,
-        message: "Title, Description and video file is required",
+        message: "Invalid course ID",
+      });
+    }
+
+    if (!trimmedTitle || !trimmedDescription || !req.file) {
+      return res.status(400).json({
+        success: false,
+        message: "Title, description, and video file are required",
       });
     }
 
@@ -30,35 +48,35 @@ export const createLecture = async (req, res) => {
       });
     }
 
-    // ownership check
-    if (course.teacher.toString() !== req.user._id.toString()) {
+    if (!ensureTeacherOwnership(course, req.user?._id)) {
       return res.status(403).json({
         success: false,
-        message: "Not authorized to add lectures",
+        message: "Not authorized to add lectures to this course",
       });
     }
 
-    // upload video
-    const result = await uploadVideo(req.file.buffer);
+    const uploadedVideo = await uploadVideo(req.file.buffer);
 
     const lecture = await Lecture.create({
-      title,
-      videoUrl: result.secure_url,
-      publicId: result.public_id,
+      title: trimmedTitle,
+      description: trimmedDescription,
+      videoUrl: uploadedVideo.secure_url,
+      publicId: uploadedVideo.public_id,
       course: courseId,
     });
 
-    course.lectures.push(lecture._id);
+    course.lectures.addToSet(lecture._id);
     await course.save();
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
+      message: "Lecture created successfully",
       lecture,
     });
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
-      message: error.message,
+      message: error.message || "Failed to create lecture",
     });
   }
 };
@@ -71,6 +89,13 @@ export const updateLecture = async (req, res) => {
     const { lectureId } = req.params;
     const { title, description } = req.body;
 
+    if (!isValidObjectId(lectureId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid lecture ID",
+      });
+    }
+
     const lecture = await Lecture.findById(lectureId);
 
     if (!lecture) {
@@ -81,40 +106,69 @@ export const updateLecture = async (req, res) => {
     }
 
     const course = await Course.findById(lecture.course);
-// ownership check
-    if (course.teacher.toString() !== req.user._id.toString()) {
-      return res.status(403).json({
+
+    if (!course) {
+      return res.status(404).json({
         success: false,
-        message: "Not authorized",
+        message: "Associated course not found",
       });
     }
 
-    // update title
-    if (title) lecture.title = title;
-
-    // update description
-    if (description) lecture.description = description;
-
-    // replace video if new file exists
-    if (req.file) {
-      await deleteVideo(lecture.publicId);
-
-      const result = await uploadVideo(req.file.buffer);
-
-      lecture.videoUrl = result.secure_url;
-      lecture.publicId = result.public_id;
+    if (!ensureTeacherOwnership(course, req.user?._id)) {
+      return res.status(403).json({
+        success: false,
+        message: "Not authorized to update this lecture",
+      });
     }
-// save changes
+
+    if (typeof title === "string") {
+      const trimmedTitle = title.trim();
+
+      if (!trimmedTitle) {
+        return res.status(400).json({
+          success: false,
+          message: "Lecture title cannot be empty",
+        });
+      }
+
+      lecture.title = trimmedTitle;
+    }
+
+    if (typeof description === "string") {
+      const trimmedDescription = description.trim();
+
+      if (!trimmedDescription) {
+        return res.status(400).json({
+          success: false,
+          message: "Lecture description cannot be empty",
+        });
+      }
+
+      lecture.description = trimmedDescription;
+    }
+
+    if (req.file) {
+      if (lecture.publicId) {
+        await deleteVideo(lecture.publicId);
+      }
+
+      const uploadedVideo = await uploadVideo(req.file.buffer);
+
+      lecture.videoUrl = uploadedVideo.secure_url;
+      lecture.publicId = uploadedVideo.public_id;
+    }
+
     await lecture.save();
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
+      message: "Lecture updated successfully",
       lecture,
     });
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
-      message: error.message,
+      message: error.message || "Failed to update lecture",
     });
   }
 };
@@ -126,6 +180,13 @@ export const deleteLecture = async (req, res) => {
   try {
     const { lectureId } = req.params;
 
+    if (!isValidObjectId(lectureId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid lecture ID",
+      });
+    }
+
     const lecture = await Lecture.findById(lectureId);
 
     if (!lecture) {
@@ -136,32 +197,43 @@ export const deleteLecture = async (req, res) => {
     }
 
     const course = await Course.findById(lecture.course);
-// ownership check
-    if (course.teacher.toString() !== req.user._id.toString()) {
-      return res.status(403).json({
+
+    if (!course) {
+      return res.status(404).json({
         success: false,
-        message: "Not authorized",
+        message: "Associated course not found",
       });
     }
 
-    // remove from cloud
-    await deleteVideo(lecture.publicId);
+    if (!ensureTeacherOwnership(course, req.user?._id)) {
+      return res.status(403).json({
+        success: false,
+        message: "Not authorized to delete this lecture",
+      });
+    }
 
-    // remove from DB
+    if (lecture.publicId) {
+      try {
+        await deleteVideo(lecture.publicId);
+      } catch (deleteError) {
+        // Keep the request flowing even if Cloudinary cleanup fails.
+        // The database record will still be removed, and the video can be cleaned up separately if needed.
+      }
+    }
+
     await Lecture.findByIdAndDelete(lectureId);
 
-    // remove reference from course
     course.lectures.pull(lectureId);
     await course.save();
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
-      message: "Lecture deleted",
+      message: "Lecture deleted successfully",
     });
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
-      message: error.message,
+      message: error.message || "Failed to delete lecture",
     });
   }
 };
