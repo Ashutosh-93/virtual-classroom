@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { verifyOtp, sendOtp, clearAuthError, setTempEmail } from '../../features/auth/authSlice';
 import { OtpInput } from '../../components/auth/OtpInput';
 
-const RESEND_SECONDS = 300; // 5-minute Vercel-style technical lockout cooldown[cite: 2]
+const RESEND_SECONDS = 300; 
 
 export default function VerifyOtp() {
   const dispatch = useDispatch();
@@ -15,7 +15,6 @@ export default function VerifyOtp() {
   const [timer, setTimer] = useState(RESEND_SECONDS);
   const [resendLoading, setResendLoading] = useState(false);
 
-  // Recovery Pipeline: Hard refresh protection reading from fallback storage[cite: 1]
   if (!tempEmail) {
     tempEmail = sessionStorage.getItem('tempEmailBackup');
   }
@@ -29,7 +28,6 @@ export default function VerifyOtp() {
     dispatch(clearAuthError());
   }, [tempEmail, navigate, dispatch]);
 
-  // Cooldown counter loop
   useEffect(() => {
     if (!timer) return undefined;
     const interval = window.setInterval(() => {
@@ -38,7 +36,6 @@ export default function VerifyOtp() {
     return () => window.clearInterval(interval);
   }, [timer]);
 
-  // Geometric layout monospace layout generator
   const formattedTimer = useMemo(() => {
     const minutes = Math.floor(timer / 60);
     const seconds = String(timer % 60).padStart(2, '0');
@@ -71,29 +68,28 @@ export default function VerifyOtp() {
   };
 
   return (
-    <section className="min-h-screen bg-[#fafafa] flex items-center justify-center px-6 py-24 font-sans selection:bg-[#171717] selection:text-[#f2f2f2]">
-      <div className="w-full max-w-[480px] bg-white border border-[#ebebeb] rounded-xl p-8 shadow-[0px_1px_1px_rgba(0,0,0,0.05),0px_2px_2px_rgba(0,0,0,0.1)]">
+    <section className="min-h-screen bg-[#fafafa] dark:bg-[#0a0a0a] flex items-center justify-center px-4 sm:px-6 py-12 md:py-24 font-sans selection:bg-[#171717] selection:text-[#f2f2f2] dark:selection:bg-[#ededed] dark:selection:text-[#121212] transition-colors duration-200">
+      <div className="w-full max-w-[480px] bg-white dark:bg-[#121212] border border-[#ebebeb] dark:border-[#232323] rounded-xl p-6 sm:p-8 shadow-[0px_1px_1px_rgba(0,0,0,0.05),0px_2px_2px_rgba(0,0,0,0.1)] dark:shadow-[0px_4px_24px_rgba(0,0,0,0.4)]">
         
-        <p className="font-mono text-xs uppercase tracking-normal text-[#888888] mb-2">
+        <p className="font-mono text-xs uppercase tracking-normal text-[#888888] dark:text-[#a3a3a3] mb-2">
           Security Verification
         </p>
         
-        <h1 className="text-3xl font-semibold text-[#171717] tracking-[-1.28px] leading-10 mb-2">
+        <h1 className="text-2xl sm:text-3xl font-semibold text-[#171717] dark:text-[#ededed] tracking-[-1.28px] leading-10 mb-2">
           Verify email.
         </h1>
         
-        <p className="text-sm text-[#4d4d4d] mb-6">
-          We have dropped a security pin to <span className="font-medium text-[#171717]">{tempEmail}</span>
+        <p className="text-sm text-[#4d4d4d] dark:text-[#a3a3a3] mb-6">
+          We have dropped a security pin to <span className="font-medium text-[#171717] dark:text-[#ededed]">{tempEmail}</span>
         </p>
 
         {error && (
-          <div className="mb-6 p-4 bg-[#f7d4d6] border border-[#ee0000]/10 rounded-sm">
-            <p className="text-sm font-medium text-[#c50000]">{error}</p>
+          <div className="mb-6 p-4 bg-[#f7d4d6] dark:bg-[#4c1d1f] border border-[#ee0000]/10 rounded-sm">
+            <p className="text-sm font-medium text-[#c50000] dark:text-[#ff8585]">{error}</p>
           </div>
         )}
 
         <form className="space-y-6" onSubmit={handleVerifySubmit}>
-          {/* Custom entry interface module container */}
           <div className="flex justify-center">
             <OtpInput value={otp} onChange={setOtp} disabled={loading} />
           </div>
@@ -102,7 +98,7 @@ export default function VerifyOtp() {
             <button
               type="submit"
               disabled={loading || otp.length !== 6}
-              className="w-full h-12 bg-[#171717] text-white font-medium text-base rounded-[100px] transition-colors hover:bg-black disabled:bg-[#ebebeb] disabled:text-[#888888] disabled:cursor-not-allowed"
+              className="w-full h-12 bg-[#171717] dark:bg-[#ededed] text-white dark:text-[#121212] font-medium text-base rounded-[100px] transition-colors hover:bg-black dark:hover:bg-white disabled:bg-[#ebebeb] dark:disabled:bg-[#232323] disabled:text-[#888888] dark:disabled:text-[#525252] disabled:cursor-not-allowed"
             >
               {loading ? 'Verifying...' : 'Submit OTP'}
             </button>
@@ -111,7 +107,7 @@ export default function VerifyOtp() {
               type="button"
               disabled={timer > 0 || resendLoading}
               onClick={handleResendOtp}
-              className="w-full h-12 bg-white text-[#4d4d4d] border border-[#ebebeb] font-medium text-sm rounded-[100px] transition-colors hover:bg-[#fafafa] hover:text-[#171717] disabled:opacity-50 disabled:cursor-not-allowed font-mono"
+              className="w-full h-12 bg-white dark:bg-[#1a1a1a] text-[#4d4d4d] dark:text-[#a3a3a3] border border-[#ebebeb] dark:border-[#232323] font-medium text-sm rounded-[100px] transition-colors hover:bg-[#fafafa] dark:hover:bg-[#262626] hover:text-[#171717] dark:hover:text-white disabled:opacity-50 disabled:cursor-not-allowed font-mono"
             >
               {timer > 0 ? `Resend OTP (${formattedTimer})` : resendLoading ? 'Sending...' : 'Resend OTP'}
             </button>

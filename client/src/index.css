@@ -1,1 +1,4 @@
 @import "tailwindcss";
+
+/* ─── CRITICAL TAILWIND v4 RE-REGISTRATION ─── */
+@custom-variant dark (&:where(.dark, .dark *));

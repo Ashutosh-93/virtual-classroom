@@ -1,98 +1,181 @@
 import React, { useEffect } from 'react';
-import { Routes, Route, Link, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { checkAuthStatus } from './features/auth/authSlice';
 
-// Page Imports
+// Architectural Guard & Shared Frame Layout Shell Imports
+import { ProtectedRoute, PublicRoute } from './components/auth/RouteGuards';
+import GlobalLayoutShell from './components/layout/GlobalLayoutShell';
+
+// Production Page Module Injections (Full-Screen Window Overrides)
+import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import VerifyOtp from './pages/auth/VerifyOtp';
+// import LectureTheater from './pages/LectureTheater';
 
-// Placeholder Pages for Integration & Testing
-function HomePlaceholder() {
-  return (
-    <main className="min-h-screen bg-[#fafafa] flex flex-col items-center justify-center px-6 text-center select-none">
-      <div className="relative mb-8">
-        {/* Subtle mesh background atmospheric shape representation */}
-        <div className="absolute -inset-10 bg-gradient-to-r from-[#007cf0] via-[#7928ca] to-[#ff4d4d] opacity-10 blur-xl rounded-full"></div>
-        <h1 className="relative text-5xl md:text-6xl font-semibold text-[#171717] tracking-[-2.4px] leading-none mb-4">
-          Virtual Classroom.
-        </h1>
-      </div>
-      <p className="text-lg md:text-xl text-[#4d4d4d] max-w-[600px] mb-8 tracking-tight">
-        An production-grade learning system designed for developers and engineers.
-      </p>
-      <div className="flex items-center gap-4">
-        <Link to="/signup" className="h-12 px-8 bg-[#171717] text-white text-base font-medium flex items-center justify-center rounded-[100px] hover:bg-black transition-colors shadow-[0px_2px_4px_rgba(0,0,0,0.05)]">
-          Get Started
-        </Link>
-        <Link to="/login" className="h-12 px-8 bg-white text-[#171717] border border-[#ebebeb] text-base font-medium flex items-center justify-center rounded-[100px] hover:bg-[#fafafa] transition-colors shadow-[0px_1px_1px_rgba(0,0,0,0.05)]">
-          Log in
-        </Link>
-      </div>
-    </main>
-  );
-}
+// Sub-Folder Modulated Component Views Allocation
+import MarketplaceHome from './views/student/MarketplaceHome';
+import StudentDashboardView from './views/student/StudentDashboardView';
+import MyLibraryView from './views/student/MyLibraryView';
+import WishlistView from './views/student/WishlistView';
+import CertificatesView from './views/student/CertificatesView';
+import PurchaseLogsView from './views/student/PurchaseLogsView';
 
-function DashboardPlaceholder() {
-  return (
-    <main className="min-h-screen bg-white p-8 font-sans">
-      <div className="max-w-6xl mx-auto border border-[#ebebeb] rounded-xl p-8 bg-[#fafafa]">
-        <p className="font-mono text-xs text-[#888888] uppercase tracking-wider mb-2">Workspace</p>
-        <h1 className="text-3xl font-semibold text-[#171717] tracking-tight mb-4">Student Dashboard.</h1>
-        <div className="h-32 border border-dashed border-[#a1a1a1]/30 rounded-md flex items-center justify-center text-sm text-[#888888] font-mono">
-          Course inventory stream mapping placeholder
-        </div>
-      </div>
-    </main>
-  );
-}
+import AccountSettingsView from './views/common/AccountSettingsView';
 
-function LoginPlaceholder() {
-  return (
-    <main className="min-h-screen bg-[#fafafa] flex items-center justify-center px-6">
-      <div className="w-full max-w-[480px] bg-white border border-[#ebebeb] rounded-xl p-8 text-center">
-        <h1 className="text-3xl font-semibold tracking-tight text-[#171717] mb-4">Sign in.</h1>
-        <p className="text-sm text-[#4d4d4d] mb-6">Login page placeholder frame.</p>
-        <Link to="/signup" className="text-[#0070f3] hover:underline text-sm font-medium">Create an account instead</Link>
-      </div>
-    </main>
-  );
-}
+import InstructorDashboardView from './views/teacher/InstructorDashboardView';
+import CourseStudioView from './views/teacher/CourseStudioView';
+import StudentRosterView from './views/teacher/StudentRosterView';
+import RevenueLedgerView from './views/teacher/RevenueLedgerView';
 
-// Global App Assembly Layout
 export default function App() {
   const dispatch = useDispatch();
-  const { isInitialized, isAuthenticated } = useSelector((state) => state.auth);
+  const { isInitialized } = useSelector((state) => state.auth);
 
-  // Read active cookies on application boot to authorize authenticated user states
+  // Sync session authentication state on cold boot with safe HTTP-only verification[cite: 1]
   useEffect(() => {
     dispatch(checkAuthStatus());
   }, [dispatch]);
 
-  // Block execution window to resolve initialization checks cleanly and avoid visual flickering
   if (!isInitialized) {
     return (
-      <div className="min-h-screen bg-[#fafafa] flex items-center justify-center font-mono text-xs text-[#888888]">
-        Initializing session...
+      <div className="min-h-screen bg-[#fafafa] dark:bg-[#0a0a0a] flex items-center justify-center font-mono text-xs text-[#888888] dark:text-[#737373]">
+        Initializing runtime security layer...
       </div>
     );
   }
 
   return (
     <Routes>
-      {/* Public Pages */}
-      <Route path="/" element={<HomePlaceholder />} />
-      <Route path="/login" element={<LoginPlaceholder />} />
-      <Route path="/signup" element={<Register />} />
-      <Route path="/verify-otp" element={<VerifyOtp />} />
+      {/* ─── HYBRID TRACKS (Inherit Collapsible Layout & Navbar via Shell Outlet) ─── */}
+      <Route element={<GlobalLayoutShell />}>
+        {/* Public Discovery Component Route Catalog */}
+        <Route path="/" element={<MarketplaceHome />} />
+        
+        {/* Guarded Student Platform Views */}
+        <Route 
+          path="/dashboard" 
+          element={
+            <ProtectedRoute>
+              <StudentDashboardView />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/dashboard/library" 
+          element={
+            <ProtectedRoute>
+              <MyLibraryView />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/dashboard/wishlist" 
+          element={
+            <ProtectedRoute>
+              <WishlistView />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/dashboard/certificates" 
+          element={
+            <ProtectedRoute>
+              <CertificatesView />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/dashboard/purchases" 
+          element={
+            <ProtectedRoute>
+              <PurchaseLogsView />
+            </ProtectedRoute>
+          } 
+        />
+        
+        {/* Common Inter-Persona Component Preference Configuration Views */}
+        <Route 
+          path="/profile/settings" 
+          element={
+            <ProtectedRoute>
+              <AccountSettingsView />
+            </ProtectedRoute>
+          } 
+        />
 
-      {/* Basic Workspace Tree Layout Route (Guarded Manually For Testing Now) */}
+        {/* Guarded Instructor/Teacher Platform Views */}
+        <Route 
+          path="/instructor" 
+          element={
+            <ProtectedRoute>
+              <InstructorDashboardView />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/instructor/studio" 
+          element={
+            <ProtectedRoute>
+              <CourseStudioView />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/instructor/roster" 
+          element={
+            <ProtectedRoute>
+              <StudentRosterView />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/instructor/revenue" 
+          element={
+            <ProtectedRoute>
+              <RevenueLedgerView />
+            </ProtectedRoute>
+          } 
+        />
+      </Route>
+
+      {/* ─── PUBLIC-ONLY GATES (Isolated minimal screens without Nav rails) ─── */}
       <Route 
-        path="/dashboard" 
-        element={isAuthenticated ? <DashboardPlaceholder /> : <Navigate to="/login" replace />} 
+        path="/login" 
+        element={
+          <PublicRoute>
+            <Login />
+          </PublicRoute>
+        } 
+      />
+      <Route 
+        path="/signup" 
+        element={
+          <PublicRoute>
+            <Register />
+          </PublicRoute>
+        } 
+      />
+      <Route 
+        path="/verify-otp" 
+        element={
+          <PublicRoute>
+            <VerifyOtp />
+          </PublicRoute>
+        } 
       />
 
-      {/* Catch-all Wildcard Route */}
+      {/* ─── ULTRA FOCUS FULL-SCREEN THEATER (No Outer Layout Overlays) ─── */}
+      {/* <Route 
+        path="/watch/:courseId" 
+        element={
+          <ProtectedRoute>
+            <LectureTheater />
+          </ProtectedRoute>
+        } 
+      /> */}
+
+      {/* Fallback Catch-All Wildcard Exception Safe Route */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

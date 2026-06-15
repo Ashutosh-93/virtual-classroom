@@ -1,6 +1,32 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { authApi } from '../../api/authApi';
 
+// Async Thunk for standard email/password login
+export const login = createAsyncThunk(
+  'auth/login',
+  async (credentials, { rejectWithValue }) => {
+    try {
+      const response = await authApi.login(credentials);
+      return response.data.user; 
+    } catch (error) {
+      return rejectWithValue(error.message || 'Login failed. Please verify your credentials.');
+    }
+  }
+);
+
+// ─── ASYNC THUNK FOR SECURITY DE-AUTHENTICATION (LOGOUT) ───
+export const logout = createAsyncThunk(
+  'auth/logout',
+  async (_, { rejectWithValue }) => {
+    try {
+      await authApi.logout(); // Triggers your server-side HTTP-Only cookie clear
+      return true;
+    } catch (error) {
+      return rejectWithValue(error.message || 'Logout failed backend clearance.');
+    }
+  }
+);
+
 // Async Thunk for sending registration OTP
 export const sendOtp = createAsyncThunk(
   'auth/sendOtp',
@@ -33,14 +59,14 @@ export const googleLogin = createAsyncThunk(
   async (idToken, { rejectWithValue }) => {
     try {
       const response = await authApi.googleLogin(idToken);
-      return response.data.user; // Extract user payload: { id, fullName, email, role, profilePic }
+      return response.data.user; 
     } catch (error) {
       return rejectWithValue(error.message || 'Google authentication failed');
     }
   }
 );
 
-// Async Thunk to fetch logged-in profile on refresh (prevents route flickering)
+// Async Thunk to fetch logged-in profile on refresh
 export const checkAuthStatus = createAsyncThunk(
   'auth/checkStatus',
   async (_, { rejectWithValue }) => {
@@ -75,6 +101,34 @@ const authSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
+      // Credentials Login Lifecycle
+      .addCase(login.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(login.fulfilled, (state, action) => {
+        state.loading = false;
+        state.user = action.payload;
+        state.isAuthenticated = true;
+      })
+      .addCase(login.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+
+      // ─── LOGOUT LIFECYCLE HANDLERS ───
+      .addCase(logout.fulfilled, (state) => {
+        state.user = null;
+        state.isAuthenticated = false;
+        state.loading = false;
+      })
+      .addCase(logout.rejected, (state) => {
+        // Enforce fallback frontend state sync even if backend call has timed out
+        state.user = null;
+        state.isAuthenticated = false;
+        state.loading = false;
+      })
+
       // Send OTP Lifecycle
       .addCase(sendOtp.pending, (state) => {
         state.loading = true;
